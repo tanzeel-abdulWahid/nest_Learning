@@ -1,44 +1,90 @@
-import { Controller, Get, Req, Post, Patch, Delete, Put, HttpCode, HttpStatus, Res, Header, Redirect } from "@nestjs/common";
-import { Request, Response } from "express";
+import { Controller, Get, Param, Post, Body, Put, Delete, Res } from "@nestjs/common";
+import { Response } from "express";
 
-// iska mtlb it will run on /users path
-@Controller('/users') // (Decorator) telling nest js that this is controller class
+interface VidParams {
+    id: number,
+    name: string
+}
+
+interface CreateUserOtd {
+    id: number,
+    name: string,
+    age: number,
+}
+
+let users: CreateUserOtd[] = [];
+
+@Controller('/users')
 export class UsersController {
-
-    @Get() // This decorator will handle requests to /users
-    // @Redirect("/users/profile", 201) //To redirect to other router
-    getUsers() {
+    //! ROUTE PARAMS
+    @Get('/videos/:id/:name')
+    // getUsers(@Param('id') param:number)  //If single param, We can extract like this
+    getUsers(@Param() param: VidParams) { //Same for @Query and @Headers 
+        console.log(param.id, param.name);
         return {
             message: "List of all users"
-            // url: '/users/profile', //to redirect dynamically based on some calc
         };
     }
 
 
-    @Get("/profile")
-    getProfile(@Req() req: Request) {
-
-        return {
-            name: "tanzeel's  profile",
-        };
-    }
-
-    @Post("/profile")
-    // @HttpCode(200) //nest js deals with status code by default but we can user custom like this
-    @HttpCode(HttpStatus.CREATED) //Or we can user enums like this provided by nest js itself
-    @Header('Cache-Control', 'none')
-    createProfile(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        // res.status(201); //optional (overrides oper wala code)
-        //we have to send "res" if arg passed
-        // res.json({
-        //     success: true,
-        //     message: "Profile created"
-        // })
-
+    @Post('/profile')
+    updateProfile(@Body() body: string) { //FOR specific Key, updateProfile(@Body('name') body 
+        console.log("Body Recieved", body)
         return {
             success: true,
-            message: "Profile created"
+            message: "Profile updated"
         }
     }
 
+    // CRUD OP IN NEST JS
+    @Post("/profileData")
+    updateProfileData(@Body() body: CreateUserOtd) {
+        users.push(body);
+        return {
+            success: true,
+            message: "Profile updated"
+        }
+    }
+
+    @Get()
+    getAllUsers() {
+        return users
+    }
+
+    @Get(":id")
+    getUserById(@Param('id') id: number) {
+        // console.log("id", typeof (id));
+        return users.find((user) => +user.id === +id)
+    }
+
+
+    @Put(":id")
+    updateUserById(@Param('id') id: number, @Body() body: CreateUserOtd, @Res({ passthrough: true }) res: Response) {
+        // console.log("id", typeof (id));
+        const userId = users.findIndex((user) => +user.id === +id)
+        if (userId === -1) {
+            res.status(404)
+            return {
+                success: false,
+                message: "User not found"
+            }
+        }
+        users[userId] = body
+        return {
+            success: true,
+            message: "updated user"
+        }
+    }
+
+
+    @Delete(":id")
+    deleteUserById(@Param('id') id: number, @Body() body: CreateUserOtd) {
+        // console.log("id", typeof (id));
+        users = users.filter((user) => +user.id !== +id)
+        
+        return {
+            success: true,
+            message: "user deleted"
+        }
+    }
 }
